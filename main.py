@@ -1,3 +1,4 @@
+import memcache
 from setup import create_movie, create_user, create_rating
 from correlation import pearson_similarity
 from sys import exit
@@ -6,10 +7,14 @@ from sys import exit
 in this directory. Except for YOU_DIC which is created in the main function 
 each time the program is run. """
 
+memc = memcache.Client(['127.0.0.1:11211'], debug=1)
+if not memc.get("keys"):
+	memc.set("keys", [])
+
 MOVIE_DIC = None
 USER_DIC = None
 DATA_DIC = None
-YOU_DIC = None
+
 		
 def movie_details(movie_id):
 	"""Returns a string containing the movie details for the movie with the
@@ -50,7 +55,14 @@ def average_movie_rating(movie_id):
 def rate(movie_id, rating):
 	"""Returns a new rating from a user with given movie id and star rating. 
 	Dictionary for user input is created in this function. """
-	YOU_DIC[movie_id] = rating
+	memc.set(movie_id, rating)
+	print "Here's the rating I stored in memory:"
+	print memc.get(movie_id)
+	keylist = memc.get("keys")
+	keylist.append(movie_id)
+	memc.set("keys", keylist)
+	print "Here's the keylist I have in memcache:"
+	print memc.get("keys")
 	movie_title = MOVIE_DIC[movie_id]['title']
 	return "You have rated movie %s: %s at %s stars" %(movie_id, movie_title, rating)
 
@@ -62,7 +74,8 @@ def predict(movie_id):
 	movie_title = MOVIE_DIC[movie_id]['title']
 	a = 0
 	d = []
-	for each in YOU_DIC:
+	keylist = memc.get("keys")
+	for each in keylist:
 		similarity = pearson_similarity(movie_ratings, movie_title, MOVIE_DIC[each]['title'])
 		d.append([similarity, each]) # each is {movie_id : rating}
 	d.sort(reverse=True)
@@ -70,7 +83,7 @@ def predict(movie_id):
 	if d[0][0] < 0.25:
 		return "Please rate more movies so we know what you like, then try again"
 	best_id = best[1]
-	best_rating = YOU_DIC[best_id]
+	best_rating = memc.get(best_id)
 	return "Best guess for movie %s: %s is %s stars" %(movie_id, movie_title, best_rating)
 
 def make_movie_ratings():
@@ -89,8 +102,6 @@ def main():
 	USER_DIC = create_user()
 	global DATA_DIC
 	DATA_DIC = create_rating()
-	global YOU_DIC
-	YOU_DIC = {}
 	mixology = True
 	while mixology == True:
 		print """
@@ -105,10 +116,10 @@ or type "quit" to exit the MMM
 """
 		function = raw_input("> ")
 		if function == "quit":
-			sure = raw_input("Your ratings will not be saved when you leave. Are you SURE you want to exit? (y/n) ")
-			if sure == "y":
-				print "MOVIE MIXER MACHINE will miss you!"
-				exit()
+			# sure = raw_input("Your ratings will not be saved when you leave. Are you SURE you want to exit? (y/n) ")
+			# if sure == "y":
+			print "MOVIE MIXER MACHINE will miss you!"
+			exit()
 
 		elif function == "movie details":
 			parameter = raw_input("Enter a movie ID: ")

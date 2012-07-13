@@ -46,14 +46,14 @@ def update_genre(movie_dic, genre_dic):
 
 def create_movie():
 	# main function generating final movie_dic with fixed genres
-	movie_dic = read_movie("ml-100k/u.item")
-	fix_genres(movie_dic, "ml-100k/u.genre")
+	movie_dic = read_movie("u.item")
+	fix_genres(movie_dic, "u.genre")
 	return movie_dic
 
 def create_user():
 	user_dic = {}
 	# Reading in data from user table to a dictionary with user_id as key and info as values in embedded dictionary
-	filename = "ml-100k/u.user"
+	filename = "u.user"
 	item = open (filename, "r")
 	for line in item:
 		stripped = line.strip()
@@ -65,7 +65,7 @@ def create_user():
 def create_rating():
 	data_dic = {}
 	# Reading in data from data (through) table which connects user ratings and movies,
-	filename = "ml-100k/u.data"
+	filename = "u.data"
 	item = open (filename, "r")
 	for line in item:
 		stripped_line = line.strip()
